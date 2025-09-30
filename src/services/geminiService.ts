@@ -1,14 +1,23 @@
 
-
 import { GoogleGenAI } from "@google/genai";
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable is not set");
+// The API key is read from environment variables. 
+// On platforms like Vercel, it needs to be exposed to the client-side,
+// often by prefixing it (e.g., VITE_API_KEY or NEXT_PUBLIC_API_KEY).
+const apiKey = process.env.API_KEY;
+let ai: GoogleGenAI | null = null;
+
+if (apiKey) {
+    ai = new GoogleGenAI({ apiKey });
+} else {
+    console.error("API_KEY environment variable is not set. Gemini API calls will fail.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const evaluateProcedure = async (procedure: string): Promise<string> => {
+    if (!ai) {
+        return "Error: La clave de API de Gemini no está configurada. La aplicación no puede contactar a la IA. Asegúrate de que la variable de entorno API_KEY esté disponible para el cliente.";
+    }
+
     const prompt = `
         Eres un instructor de laboratorio de química experimentado y servicial. 
         Un estudiante de metalurgia ha propuesto el siguiente procedimiento para medir la densidad aparente de una muestra de mena de cobre oxidado.
@@ -36,6 +45,10 @@ export const evaluateProcedure = async (procedure: string): Promise<string> => {
 };
 
 export const generateLabReport = async (data: any): Promise<string> => {
+    if (!ai) {
+        return "Error: La clave de API de Gemini no está configurada. No se puede generar el informe.";
+    }
+
     const prompt = `
       Eres un redactor científico. Basándote en los siguientes datos de laboratorio, redacta un resumen conciso, claro y creativo para un informe de laboratorio.
       El resumen debe comunicar eficazmente el objetivo, el método, los resultados y una breve conclusión.
