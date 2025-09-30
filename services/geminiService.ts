@@ -1,21 +1,35 @@
-
 import { GoogleGenAI } from "@google/genai";
 
-// The API key is read from environment variables. 
-// On platforms like Vercel, it needs to be exposed to the client-side,
-// often by prefixing it (e.g., VITE_API_KEY or NEXT_PUBLIC_API_KEY).
-const apiKey = process.env.API_KEY;
 let ai: GoogleGenAI | null = null;
+let apiKeyError: string | null = null;
 
-if (apiKey) {
-    ai = new GoogleGenAI({ apiKey });
-} else {
-    console.error("API_KEY environment variable is not set. Gemini API calls will fail.");
+// Initialize the AI client safely
+try {
+    // The API key is read from environment variables.
+    // On platforms like Vercel, it needs to be exposed to the client-side,
+    // often by prefixing it (e.g., VITE_API_KEY or NEXT_PUBLIC_API_KEY).
+    const apiKey = process.env.API_KEY;
+
+    if (apiKey) {
+        ai = new GoogleGenAI({ apiKey });
+    } else {
+        apiKeyError = "La variable de entorno API_KEY no está configurada. En tu plataforma de despliegue (ej. Vercel), asegúrate de que la variable esté disponible para el cliente (frontend). A menudo, esto requiere un prefijo especial como `VITE_` o `NEXT_PUBLIC_`.";
+        console.error(apiKeyError);
+    }
+} catch (error) {
+    // This catches errors like "process is not defined" if the build environment doesn't support it.
+    apiKeyError = "Error al acceder a las variables de entorno. El entorno de compilación de la aplicación no parece estar configurado para manejar `process.env`.";
+    console.error(apiKeyError, error);
 }
 
+
 export const evaluateProcedure = async (procedure: string): Promise<string> => {
+    if (apiKeyError) {
+        return `Error de Configuración: ${apiKeyError}`;
+    }
     if (!ai) {
-        return "Error: La clave de API de Gemini no está configurada. La aplicación no puede contactar a la IA. Asegúrate de que la variable de entorno API_KEY esté disponible para el cliente.";
+        // Fallback, should be covered by apiKeyError
+        return "Error: La clave de API de Gemini no está configurada. La aplicación no puede contactar a la IA.";
     }
 
     const prompt = `
@@ -45,7 +59,11 @@ export const evaluateProcedure = async (procedure: string): Promise<string> => {
 };
 
 export const generateLabReport = async (data: any): Promise<string> => {
+    if (apiKeyError) {
+        return `Error de Configuración: ${apiKeyError}`;
+    }
     if (!ai) {
+        // Fallback
         return "Error: La clave de API de Gemini no está configurada. No se puede generar el informe.";
     }
 
